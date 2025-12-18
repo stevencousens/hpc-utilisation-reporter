@@ -79,7 +79,7 @@ def preprocess_sacct_data(raw_data_df, capacities_df) -> pd.DataFrame:
     }
 
     # the following lines are specific to Kelvin2 to account for slurm database error
-    error_file = Path("/mnt/scratch2/service-reporting/db_errors/20250609.txt")
+    error_file = Path("/mnt/scratch2/service-reporting/input_data/db_errors/20250609.txt")
     if error_file.exists():
         with error_file.open() as f:
             affected_jobs = [line.strip() for line in f if line.strip()]
