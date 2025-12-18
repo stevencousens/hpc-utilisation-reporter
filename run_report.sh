@@ -7,6 +7,11 @@
 #SBATCH -J utilisation_report
 #SBATCH -o slurm-%j.out
 
+
+# Before running this script, ensure that all required sacct logs are in JOBS_DIR and update REPORT_START and REPORT_END
+# The command to generate a sacct log in the correct format is:
+# sacct -a -P -X --starttime=2025-11-01 --endtime=2025-12-01 -o jobid,user,partition,submit,start,end,state,elapsedraw,nodelist,reqtres,alloctres > JobList_2025-11.txt
+
 # --- Variables ---
 JOBS_DIR="/mnt/scratch2/service-reporting/input_data/joblists/"
 CAPACITIES_DIR="/mnt/scratch2/service-reporting/input_data/capacities"
