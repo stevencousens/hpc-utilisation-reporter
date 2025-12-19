@@ -4,22 +4,31 @@ from pathlib import Path
 from src.utils import expand_nodelist
 from src.capacity_helpers import get_gpu_types, get_node_to_gpu_map, get_partition_to_gpu_map
 
-def concat_sacct_data(path):
-    raw_dir = Path(path)
-    files   = sorted(raw_dir.glob("JobList_*.txt"), reverse=True)
+def concat_sacct_data(directory):
+    raw_dir = Path(directory)
+    
+    files = sorted(raw_dir.glob("JobList_*.txt"), reverse=True) # sorted for later drop_duplicates
 
-    return (pd.concat(
-                    [
-                        pd.read_csv(f, sep="|", dtype=str)
-                          .assign(FileName=f.name)
-                        for f in files
-                    ],
-                    ignore_index=True
-                )
-                .assign(JobID=lambda df: df.JobID.astype(str))
-                .drop_duplicates("JobID", keep="first")
-            )
+    if not files:
+        raise FileNotFoundError(f"No JobList_*.txt files found in {raw_dir}")
 
+    # Load each file into a DataFrame
+    dfs = []
+    for f in files:
+        df = pd.read_csv(f, sep="|", dtype=str)
+        dfs.append(df)
+
+    # Concatenate all DataFrames
+    combined = pd.concat(dfs, ignore_index=True)
+
+    # Normalise JobID and drop duplicates
+    combined = (
+        combined
+        .assign(JobID=lambda df: df.JobID.astype(str))
+        .drop_duplicates("JobID", keep="first")
+    )
+
+    return combined
 
 def assign_gpus(row, gpu_types, node_to_gpu_map, partition_to_gpu_map):
     """Assign GPU counts to job row using node, TRES, and partition mappings."""
@@ -110,8 +119,16 @@ def preprocess_sacct_data(raw_data_df, capacities_df) -> pd.DataFrame:
             .drop(columns=['alloctres','reqtres', 'gpu_per_node']))
     return df
 
-
 def get_sacct_data(path, capacities):
-    raw_sacct_data = concat_sacct_data(path)
-    preprocessed_sacct_data = preprocess_sacct_data(raw_sacct_data, capacities)
-    return preprocessed_sacct_data
+    path = Path(path)
+
+    if path.is_file():
+        raw_sacct_data = (
+            pd.read_csv(path, sep="|", dtype=str)
+              .assign(JobID=lambda df: df.JobID.astype(str))
+        )
+
+    else:
+        raw_sacct_data = concat_sacct_data(path)
+
+    return preprocess_sacct_data(raw_sacct_data, capacities)
