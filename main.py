@@ -22,7 +22,7 @@ def parse_args():
     jobs_input_group.add_argument("--jobs-file", help="Single sacct log file")
     jobs_input_group.add_argument("--jobs-dir", help="Directory containing JobList_*.txt files")
 
-    parser.add_argument("--capacities-dir", required=True, help="Path to capacity files")
+    parser.add_argument("--capacities-dir", help="Path to capacity files")
     parser.add_argument("--output-dir", default=".", help="Path to write output files")
     parser.add_argument("--report-start", type=valid_date, required=True,
                         help="Report start date (YYYY-MM-DD)")
@@ -42,9 +42,11 @@ def validate_paths(args):
             sys.exit(f"Error: jobs directory does not exist → {jobs_path}")
 
     # Capacities directory
-    capacities_dir = os.path.abspath(os.path.expanduser(args.capacities_dir))
-    if not os.path.isdir(capacities_dir):
-        sys.exit(f"Error: capacity directory does not exist → {capacities_dir}")
+    capacities_dir = None
+    if args.capacities_dir:
+        capacities_dir = os.path.abspath(os.path.expanduser(args.capacities_dir))
+        if not os.path.isdir(capacities_dir):
+            sys.exit(f"Error: capacity directory does not exist → {capacities_dir}")
 
     # Output directory
     output_dir = os.path.abspath(os.path.expanduser(args.output_dir))
@@ -69,14 +71,15 @@ def main():
     print(f"Output dir: {output_dir}")
     print(f"Report range: {report_start.date()} → {report_end.date()}")
     
-    # --- Capacities ---
-    capacity_history_df = get_capacity_history(capacities_dir)
+    if capacities_dir:
+        # --- Capacities ---
+        capacity_history_df = get_capacity_history(capacities_dir)
 
-    # Expand into a daily time series
-    filled_df = expand_capacity_snapshots(capacity_history_df, start=report_start,end=report_end)
+        # Expand into a daily time series
+        filled_df = expand_capacity_snapshots(capacity_history_df, start=report_start,end=report_end)
 
-    capacity_report_path = os.path.join(output_dir, "CapacityReport.csv")
-    filled_df.to_csv(capacity_report_path, index=False)
+        capacity_report_path = os.path.join(output_dir, "CapacityReport.csv")
+        filled_df.to_csv(capacity_report_path, index=False)
 
     # --- Jobs ---
     
